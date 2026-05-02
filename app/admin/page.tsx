@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { ClassManager } from "@/components/class-manager";
 import { QRGenerator } from "@/components/qr-generator";
+import { StudentManager } from "@/components/student-manager";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Download } from "lucide-react";
 
 interface Class {
   id: string;
@@ -41,8 +41,14 @@ export default function AdminPage() {
     setClasses([...classes, newClass]);
   };
 
-  const handleDownloadStudentsCsv = () => {
-    window.location.href = "/api/students/export";
+  const handleClassUpdated = (updatedClass: Class) => {
+    setClasses((current) =>
+      current.map((cls) => (cls.id === updatedClass.id ? updatedClass : cls))
+    );
+  };
+
+  const handleClassDeleted = (classId: string) => {
+    setClasses((current) => current.filter((cls) => cls.id !== classId));
   };
 
   if (isLoading) {
@@ -83,7 +89,7 @@ export default function AdminPage() {
           <TabsList className="grid w-full sm:max-w-xl grid-cols-3">
             <TabsTrigger value="qr">Generate QR</TabsTrigger>
             <TabsTrigger value="classes">Manage Classes</TabsTrigger>
-            <TabsTrigger value="students">Students CSV</TabsTrigger>
+            <TabsTrigger value="students">Students</TabsTrigger>
           </TabsList>
 
           <TabsContent value="qr" className="mt-6">
@@ -94,26 +100,13 @@ export default function AdminPage() {
             <ClassManager
               classes={classes}
               onClassAdded={handleClassAdded}
+              onClassUpdated={handleClassUpdated}
+              onClassDeleted={handleClassDeleted}
             />
           </TabsContent>
 
           <TabsContent value="students" className="mt-6">
-            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Students CSV
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Download the approved student list with parent email, subject attendance percentages, and remarks.
-                  </p>
-                </div>
-                <Button onClick={handleDownloadStudentsCsv} className="w-full sm:w-auto">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download CSV
-                </Button>
-              </div>
-            </div>
+            <StudentManager />
           </TabsContent>
         </Tabs>
       </div>
