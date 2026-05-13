@@ -10,6 +10,8 @@ const studentSelect = {
   name: true,
   rollNumber: true,
   parentEmail: true,
+  tgCourseRegistrationStatus: true,
+  feesDetails: true,
   remarks: true,
   createdAt: true,
 };
@@ -24,6 +26,10 @@ export async function PATCH(
     const name = normalize(String(body.name ?? ""));
     const rollNumber = normalize(String(body.rollNumber ?? ""));
     const parentEmail = normalize(String(body.parentEmail ?? ""));
+    const tgCourseRegistrationStatus = normalize(
+      String(body.tgCourseRegistrationStatus ?? "")
+    );
+    const feesDetails = normalize(String(body.feesDetails ?? ""));
     const remarks = normalize(String(body.remarks ?? ""));
 
     if (!name || !rollNumber) {
@@ -54,6 +60,8 @@ export async function PATCH(
         name,
         rollNumber,
         parentEmail: parentEmail || null,
+        tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+        feesDetails: feesDetails || null,
         remarks: remarks || null,
       },
       select: studentSelect,

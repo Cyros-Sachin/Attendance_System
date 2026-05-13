@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
         name: true,
         rollNumber: true,
         parentEmail: true,
+        tgCourseRegistrationStatus: true,
+        feesDetails: true,
         remarks: true,
       },
     });
@@ -42,6 +44,8 @@ export async function POST(request: NextRequest) {
       name: student.name,
       rollNumber: student.rollNumber,
       parentEmail: student.parentEmail,
+      tgCourseRegistrationStatus: student.tgCourseRegistrationStatus,
+      feesDetails: student.feesDetails,
       remarks: student.remarks,
     });
   } catch (error) {

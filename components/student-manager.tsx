@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Download, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,8 +21,21 @@ interface Student {
   name: string;
   rollNumber: string;
   parentEmail: string | null;
+  tgCourseRegistrationStatus: string | null;
+  feesDetails: string | null;
   remarks: string | null;
   createdAt: string;
+}
+
+function sortStudentsAsc(items: Student[]) {
+  return [...items].sort((a, b) => {
+    const rollCompare = a.rollNumber.localeCompare(b.rollNumber, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+    if (rollCompare !== 0) return rollCompare;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
 }
 
 export function StudentManager() {
@@ -30,13 +43,18 @@ export function StudentManager() {
   const [name, setName] = useState("");
   const [rollNumber, setRollNumber] = useState("");
   const [parentEmail, setParentEmail] = useState("");
+  const [tgCourseRegistrationStatus, setTgCourseRegistrationStatus] = useState("");
+  const [feesDetails, setFeesDetails] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [searchStudent, setSearchStudent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editRollNumber, setEditRollNumber] = useState("");
   const [editParentEmail, setEditParentEmail] = useState("");
+  const [editTgCourseRegistrationStatus, setEditTgCourseRegistrationStatus] = useState("");
+  const [editFeesDetails, setEditFeesDetails] = useState("");
   const [editRemarks, setEditRemarks] = useState("");
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
 
@@ -54,7 +72,7 @@ export function StudentManager() {
         return;
       }
 
-      setStudents(data);
+      setStudents(sortStudentsAsc(data));
     } catch (error) {
       console.error("Error fetching students:", error);
       toast.error("Failed to load students");
@@ -80,6 +98,8 @@ export function StudentManager() {
           name,
           rollNumber,
           parentEmail,
+          tgCourseRegistrationStatus,
+          feesDetails,
           remarks,
         }),
       });
@@ -90,10 +110,12 @@ export function StudentManager() {
         return;
       }
 
-      setStudents((current) => [...current, data]);
+      setStudents((current) => sortStudentsAsc([...current, data]));
       setName("");
       setRollNumber("");
       setParentEmail("");
+      setTgCourseRegistrationStatus("");
+      setFeesDetails("");
       setRemarks("");
       toast.success("Student added to approved list");
     } catch (error) {
@@ -113,6 +135,8 @@ export function StudentManager() {
     setEditName(student.name);
     setEditRollNumber(student.rollNumber);
     setEditParentEmail(student.parentEmail ?? "");
+    setEditTgCourseRegistrationStatus(student.tgCourseRegistrationStatus ?? "");
+    setEditFeesDetails(student.feesDetails ?? "");
     setEditRemarks(student.remarks ?? "");
   };
 
@@ -121,6 +145,8 @@ export function StudentManager() {
     setEditName("");
     setEditRollNumber("");
     setEditParentEmail("");
+    setEditTgCourseRegistrationStatus("");
+    setEditFeesDetails("");
     setEditRemarks("");
   };
 
@@ -139,6 +165,8 @@ export function StudentManager() {
           name: editName,
           rollNumber: editRollNumber,
           parentEmail: editParentEmail,
+          tgCourseRegistrationStatus: editTgCourseRegistrationStatus,
+          feesDetails: editFeesDetails,
           remarks: editRemarks,
         }),
       });
@@ -150,7 +178,9 @@ export function StudentManager() {
       }
 
       setStudents((current) =>
-        current.map((student) => (student.id === studentId ? data : student))
+        sortStudentsAsc(
+          current.map((student) => (student.id === studentId ? data : student))
+        )
       );
       cancelEditing();
       toast.success("Student updated");
@@ -190,6 +220,25 @@ export function StudentManager() {
       setBusyStudentId(null);
     }
   };
+
+  const filteredStudents = useMemo(() => {
+    const query = searchStudent.trim().toLowerCase();
+    if (!query) return students;
+
+    return students.filter((student) =>
+      [
+        student.name,
+        student.rollNumber,
+        student.parentEmail ?? "",
+        student.tgCourseRegistrationStatus ?? "",
+        student.feesDetails ?? "",
+        student.remarks ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [students, searchStudent]);
 
   return (
     <div className="space-y-6">
@@ -239,6 +288,26 @@ export function StudentManager() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-2">
+              TG Course Registration Status
+            </label>
+            <Input
+              value={tgCourseRegistrationStatus}
+              onChange={(event) => setTgCourseRegistrationStatus(event.target.value)}
+              placeholder="Registered / Pending / Not Registered"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Fees Details</label>
+            <Input
+              value={feesDetails}
+              onChange={(event) => setFeesDetails(event.target.value)}
+              placeholder="Paid / Pending / Amount"
+            />
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-2">Remarks</label>
             <Textarea
               value={remarks}
@@ -258,13 +327,23 @@ export function StudentManager() {
       </Card>
 
       <Card className="w-full p-4 sm:p-6">
-        <h3 className="text-lg font-semibold mb-4">Approved Student List</h3>
+        <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
+          <h3 className="text-lg font-semibold">Approved Student List</h3>
+          <Input
+            placeholder="Search by name, roll, TG status, fees..."
+            value={searchStudent}
+            onChange={(event) => setSearchStudent(event.target.value)}
+            className="md:max-w-sm"
+          />
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Roll Number</TableHead>
               <TableHead>Parent Email</TableHead>
+              <TableHead>TG Course Registration</TableHead>
+              <TableHead>Fees Details</TableHead>
               <TableHead>Remarks</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -272,18 +351,20 @@ export function StudentManager() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500">
+                <TableCell colSpan={7} className="text-center text-gray-500">
                   Loading students...
                 </TableCell>
               </TableRow>
-            ) : students.length === 0 ? (
+            ) : filteredStudents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500">
-                  No students added yet
+                <TableCell colSpan={7} className="text-center text-gray-500">
+                  {students.length === 0
+                    ? "No students added yet"
+                    : "No students match your search"}
                 </TableCell>
               </TableRow>
             ) : (
-              students.map((student) => (
+              filteredStudents.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">
                     {editingStudentId === student.id ? (
@@ -317,6 +398,30 @@ export function StudentManager() {
                       />
                     ) : (
                       student.parentEmail || "-"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingStudentId === student.id ? (
+                      <Input
+                        value={editTgCourseRegistrationStatus}
+                        onChange={(event) =>
+                          setEditTgCourseRegistrationStatus(event.target.value)
+                        }
+                        className="min-w-52"
+                      />
+                    ) : (
+                      student.tgCourseRegistrationStatus || "-"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingStudentId === student.id ? (
+                      <Input
+                        value={editFeesDetails}
+                        onChange={(event) => setEditFeesDetails(event.target.value)}
+                        className="min-w-44"
+                      />
+                    ) : (
+                      student.feesDetails || "-"
                     )}
                   </TableCell>
                   <TableCell>

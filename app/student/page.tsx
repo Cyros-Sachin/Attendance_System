@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StudentLogin } from "@/components/student-login";
 import { QRScanner } from "@/components/qr-scanner";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,26 @@ interface StudentSession {
   rollNumber: string;
 }
 
+interface AttendanceSuccess {
+  studentName: string;
+  className: string;
+  date: string;
+  time: string;
+  status: string;
+}
+
 export default function StudentPage() {
   const [session, setSession] = useState<StudentSession | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<any>(null);
+  const [success, setSuccess] = useState<AttendanceSuccess | null>(null);
+  const successTimeoutRef = useRef<number | null>(null);
+
+  const clearSuccessTimeout = () => {
+    if (successTimeoutRef.current !== null) {
+      window.clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+  };
 
   // Load session from localStorage on mount
   useEffect(() => {
@@ -28,6 +44,10 @@ export default function StudentPage() {
         localStorage.removeItem("studentSession");
       }
     }
+
+    return () => {
+      clearSuccessTimeout();
+    };
   }, []);
 
   const handleLogin = (name: string, rollNumber: string) => {
@@ -73,11 +93,10 @@ export default function StudentPage() {
 
       setSuccess(data);
       toast.success("Attendance recorded successfully!");
-
-      // Reset after 3 seconds
-      setTimeout(() => {
+      setSubmitting(false);
+      clearSuccessTimeout();
+      successTimeoutRef.current = window.setTimeout(() => {
         setSuccess(null);
-        setSubmitting(false);
       }, 3000);
     } catch (error) {
       console.error("Error submitting attendance:", error);
@@ -90,6 +109,7 @@ export default function StudentPage() {
     setSession(null);
     localStorage.removeItem("studentSession");
     setSuccess(null);
+    clearSuccessTimeout();
     toast.success("Logged out successfully");
   };
 

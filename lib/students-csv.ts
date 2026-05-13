@@ -4,6 +4,8 @@ type CsvStudent = {
   rollNumber: string;
   name: string;
   parentEmail: string;
+  tgCourseRegistrationStatus: string;
+  feesDetails: string;
   remarks: string;
   classPercentages: Map<string, string>;
 };
@@ -64,11 +66,19 @@ export async function buildStudentsCsv() {
         rollNumber: student.rollNumber,
         name: student.name,
         parentEmail: student.parentEmail ?? "",
+        tgCourseRegistrationStatus: student.tgCourseRegistrationStatus ?? "",
+        feesDetails: student.feesDetails ?? "",
         remarks: student.remarks ?? "",
         classPercentages: new Map<string, string>(),
       };
 
     if (!row.parentEmail && student.parentEmail) row.parentEmail = student.parentEmail;
+    if (!row.tgCourseRegistrationStatus && student.tgCourseRegistrationStatus) {
+      row.tgCourseRegistrationStatus = student.tgCourseRegistrationStatus;
+    }
+    if (!row.feesDetails && student.feesDetails) {
+      row.feesDetails = student.feesDetails;
+    }
     if (!row.remarks && student.remarks) row.remarks = student.remarks;
 
     for (const cls of classes) {
@@ -87,6 +97,8 @@ export async function buildStudentsCsv() {
     "student_name",
     "roll_number",
     "parent_email",
+    "tg_course_registration_status",
+    "fees_details",
     ...classes.map((cls) => `attendance_percentage_${slugHeader(cls.name)}`),
     "remarks",
   ];
@@ -95,6 +107,8 @@ export async function buildStudentsCsv() {
     student.name,
     student.rollNumber,
     student.parentEmail,
+    student.tgCourseRegistrationStatus,
+    student.feesDetails,
     ...classes.map((cls) => student.classPercentages.get(cls.id) ?? ""),
     student.remarks,
   ]);

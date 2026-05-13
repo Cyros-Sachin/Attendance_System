@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 
 interface QRScannerProps {
-  onScanSuccess: (payload: any) => void;
+  onScanSuccess: (payload: any) => void | Promise<void>;
   studentName: string;
   rollNumber: string;
 }
@@ -23,6 +23,7 @@ export function QRScanner({
 }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
   const onScanSuccessRef = useRef(onScanSuccess);
@@ -41,8 +42,8 @@ export function QRScanner({
       state === Html5QrcodeScannerState.PAUSED
     ) {
       await scanner.stop();
-      scannerRef.current = null;
     }
+    scannerRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function QRScanner({
 
     const startScanning = async () => {
       try {
+        setScannerError(null);
         const html5QrCode = new Html5Qrcode("qr-reader", {
           verbose: false,
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
@@ -58,91 +60,125 @@ export function QRScanner({
         });
         scannerRef.current = html5QrCode;
 
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 24,
-            qrbox: { width: 280, height: 280 },
-            disableFlip: true,
-          },
-          async (decodedText) => {
-            if (isProcessingRef.current) return; // Prevent multiple simultaneous scans
+        const scanConfig = {
+          fps: 24,
+          qrbox: { width: 280, height: 280 },
+          disableFlip: true,
+        };
 
-            isProcessingRef.current = true;
-            setIsProcessing(true);
-            try {
-              let payload: {
-                classId: string;
-                sessionType: string;
-                expiresAtMs: number;
-              } | null = null;
+        const onDecode = async (decodedText: string) => {
+          if (isProcessingRef.current) return;
 
-              if (decodedText.startsWith("v1|")) {
-                const parts = decodedText.split("|");
-                if (parts.length === 4) {
-                  const expiresAtMs = Number(parts[3]);
-                  if (Number.isFinite(expiresAtMs)) {
-                    payload = {
-                      classId: parts[1],
-                      sessionType: parts[2] || "session",
-                      expiresAtMs,
-                    };
-                  }
+          isProcessingRef.current = true;
+          setIsProcessing(true);
+          try {
+            let payload: {
+              classId: string;
+              sessionType: string;
+              expiresAtMs: number;
+            } | null = null;
+
+            if (decodedText.startsWith("v1|")) {
+              const parts = decodedText.split("|");
+              if (parts.length === 4) {
+                const expiresAtMs = Number(parts[3]);
+                if (Number.isFinite(expiresAtMs)) {
+                  payload = {
+                    classId: parts[1],
+                    sessionType: parts[2] || "session",
+                    expiresAtMs,
+                  };
                 }
-              } else {
-                const rawPayload = JSON.parse(decodedText);
-                const rawExpiresAt = rawPayload.exp ?? rawPayload.expiresAt;
-                const expiresAtMs =
-                  typeof rawExpiresAt === "number"
-                    ? rawExpiresAt
-                    : Date.parse(rawExpiresAt);
-                payload = {
-                  classId: rawPayload.cid ?? rawPayload.classId,
-                  sessionType: rawPayload.st ?? rawPayload.sessionType ?? "session",
-                  expiresAtMs,
-                };
               }
+            } else {
+              const rawPayload = JSON.parse(decodedText);
+              const rawExpiresAt = rawPayload.exp ?? rawPayload.expiresAt;
+              const expiresAtMs =
+                typeof rawExpiresAt === "number"
+                  ? rawExpiresAt
+                  : Date.parse(rawExpiresAt);
+              payload = {
+                classId: rawPayload.cid ?? rawPayload.classId,
+                sessionType: rawPayload.st ?? rawPayload.sessionType ?? "session",
+                expiresAtMs,
+              };
+            }
 
-              // Validate payload
-              if (!payload?.classId || !Number.isFinite(payload.expiresAtMs)) {
-                toast.error("Invalid QR code");
-                isProcessingRef.current = false;
-                setIsProcessing(false);
-                return;
-              }
+            if (!payload?.classId || !Number.isFinite(payload.expiresAtMs)) {
+              toast.error("Invalid QR code");
+              isProcessingRef.current = false;
+              setIsProcessing(false);
+              return;
+            }
 
-              // Check if QR code has expired
-              if (Date.now() > payload.expiresAtMs) {
-                toast.error("QR code has expired");
-                isProcessingRef.current = false;
-                setIsProcessing(false);
-                return;
-              }
+            if (Date.now() > payload.expiresAtMs) {
+              toast.error("QR code has expired");
+              isProcessingRef.current = false;
+              setIsProcessing(false);
+              return;
+            }
 
-              // Stop scanning while processing
-              await stopScannerIfRunning();
-              if (isCancelled) return;
-              setIsScanning(false);
+            setIsScanning(false);
+            const stopPromise = stopScannerIfRunning();
+            if (isCancelled) return;
 
-              // Call the callback with all necessary data
+            await Promise.resolve(
               onScanSuccessRef.current({
                 ...payload,
                 expiresAt: new Date(payload.expiresAtMs).toISOString(),
                 studentId: rollNumber,
                 studentName: studentName,
-              });
-            } catch (error) {
-              console.error("Error processing QR code:", error);
-              toast.error("Failed to process QR code");
-              isProcessingRef.current = false;
-              setIsProcessing(false);
-            }
-          },
-          undefined
-        );
+              })
+            );
+            isProcessingRef.current = false;
+            setIsProcessing(false);
+            await stopPromise;
+          } catch (error) {
+            console.error("Error processing QR code:", error);
+            toast.error("Failed to process QR code");
+            isProcessingRef.current = false;
+            setIsProcessing(false);
+          }
+        };
+
+        const cameraTargets: Array<string | { facingMode: string | { exact: string } }> =
+          [{ facingMode: { exact: "environment" } }, { facingMode: "environment" }];
+
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          if (cameras.length > 0) {
+            cameraTargets.push(cameras[0].id);
+          }
+        } catch (error) {
+          console.warn("Unable to enumerate cameras:", error);
+        }
+
+        cameraTargets.push({ facingMode: "user" });
+
+        let startError: unknown = null;
+        let started = false;
+
+        for (const target of cameraTargets) {
+          if (isCancelled) return;
+          try {
+            await html5QrCode.start(target, scanConfig, onDecode, undefined);
+            started = true;
+            break;
+          } catch (error) {
+            startError = error;
+          }
+        }
+
+        if (!started) {
+          throw startError ?? new Error("No camera available");
+        }
       } catch (error) {
         console.error("Error starting scanner:", error);
         if (!isCancelled) {
+          setIsScanning(false);
+          setScannerError(
+            "Unable to open camera. Allow camera permission and tap Retry."
+          );
           toast.error("Failed to start camera");
         }
       }
@@ -160,6 +196,7 @@ export function QRScanner({
     await stopScannerIfRunning();
     isProcessingRef.current = false;
     setIsProcessing(false);
+    setScannerError(null);
     setIsScanning(true);
   };
 
@@ -179,6 +216,16 @@ export function QRScanner({
         <Button onClick={handleRetry} className="w-full" variant="outline">
           Retry
         </Button>
+      )}
+
+      {scannerError && (
+        <p className="text-sm text-red-600 text-center mt-3">{scannerError}</p>
+      )}
+
+      {isProcessing && (
+        <p className="text-sm text-blue-600 text-center mt-3">
+          Recording attendance...
+        </p>
       )}
 
       <p className="text-xs text-gray-500 text-center mt-4">

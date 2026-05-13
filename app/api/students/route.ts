@@ -5,19 +5,23 @@ function normalize(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+const studentSelect = {
+  id: true,
+  name: true,
+  rollNumber: true,
+  parentEmail: true,
+  tgCourseRegistrationStatus: true,
+  feesDetails: true,
+  remarks: true,
+  createdAt: true,
+};
+
 export async function GET() {
   try {
     const students = await prisma.student.findMany({
       where: { classId: null },
       orderBy: [{ rollNumber: "asc" }, { name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        rollNumber: true,
-        parentEmail: true,
-        remarks: true,
-        createdAt: true,
-      },
+      select: studentSelect,
     });
 
     return NextResponse.json(students, { status: 200 });
@@ -36,6 +40,10 @@ export async function POST(request: NextRequest) {
     const name = normalize(String(body.name ?? ""));
     const rollNumber = normalize(String(body.rollNumber ?? ""));
     const parentEmail = normalize(String(body.parentEmail ?? ""));
+    const tgCourseRegistrationStatus = normalize(
+      String(body.tgCourseRegistrationStatus ?? "")
+    );
+    const feesDetails = normalize(String(body.feesDetails ?? ""));
     const remarks = normalize(String(body.remarks ?? ""));
 
     if (!name || !rollNumber) {
@@ -64,16 +72,11 @@ export async function POST(request: NextRequest) {
         name,
         rollNumber,
         parentEmail: parentEmail || null,
+        tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+        feesDetails: feesDetails || null,
         remarks: remarks || null,
       },
-      select: {
-        id: true,
-        name: true,
-        rollNumber: true,
-        parentEmail: true,
-        remarks: true,
-        createdAt: true,
-      },
+      select: studentSelect,
     });
 
     return NextResponse.json(student, { status: 201 });

@@ -27,6 +27,10 @@ async function main() {
     const name = clean(row.student_name ?? row.name);
     const rollNumber = clean(row.roll_number ?? row.student_id ?? row.roll);
     const parentEmail = clean(row.parent_email);
+    const tgCourseRegistrationStatus = clean(
+      row.tg_course_registration_status ?? row.tg_registration_status
+    );
+    const feesDetails = clean(row.fees_details ?? row.fee_details ?? row.fees);
     const remarks = clean(row.remarks);
 
     if (!name || !rollNumber) continue;
@@ -45,6 +49,8 @@ async function main() {
         data: {
           name,
           parentEmail: parentEmail || null,
+          tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+          feesDetails: feesDetails || null,
           remarks: remarks || null,
         },
       });
@@ -54,6 +60,8 @@ async function main() {
           name,
           rollNumber,
           parentEmail: parentEmail || null,
+          tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+          feesDetails: feesDetails || null,
           remarks: remarks || null,
         },
       });

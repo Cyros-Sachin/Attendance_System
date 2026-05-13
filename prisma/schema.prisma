@@ -26,6 +26,8 @@ model Student {
   name      String
   rollNumber String
   parentEmail String?
+  tgCourseRegistrationStatus String?
+  feesDetails String?
   remarks   String?
   createdAt DateTime @default(now())
 
