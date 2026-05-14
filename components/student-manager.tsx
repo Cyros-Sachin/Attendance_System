@@ -15,27 +15,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { sortStudentsByEnrollmentNumberAsc } from "@/lib/student-sort";
 
 interface Student {
   id: string;
   name: string;
   rollNumber: string;
   parentEmail: string | null;
-  tgCourseRegistrationStatus: string | null;
+  parentContactNumber: string | null;
+  tgName: string | null;
+  courseRegistrationStatus: string | null;
   feesDetails: string | null;
   remarks: string | null;
   createdAt: string;
-}
-
-function sortStudentsAsc(items: Student[]) {
-  return [...items].sort((a, b) => {
-    const rollCompare = a.rollNumber.localeCompare(b.rollNumber, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-    if (rollCompare !== 0) return rollCompare;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-  });
 }
 
 export function StudentManager() {
@@ -43,7 +35,9 @@ export function StudentManager() {
   const [name, setName] = useState("");
   const [rollNumber, setRollNumber] = useState("");
   const [parentEmail, setParentEmail] = useState("");
-  const [tgCourseRegistrationStatus, setTgCourseRegistrationStatus] = useState("");
+  const [parentContactNumber, setParentContactNumber] = useState("");
+  const [tgName, setTgName] = useState("");
+  const [courseRegistrationStatus, setCourseRegistrationStatus] = useState("");
   const [feesDetails, setFeesDetails] = useState("");
   const [remarks, setRemarks] = useState("");
   const [searchStudent, setSearchStudent] = useState("");
@@ -53,7 +47,9 @@ export function StudentManager() {
   const [editName, setEditName] = useState("");
   const [editRollNumber, setEditRollNumber] = useState("");
   const [editParentEmail, setEditParentEmail] = useState("");
-  const [editTgCourseRegistrationStatus, setEditTgCourseRegistrationStatus] = useState("");
+  const [editParentContactNumber, setEditParentContactNumber] = useState("");
+  const [editTgName, setEditTgName] = useState("");
+  const [editCourseRegistrationStatus, setEditCourseRegistrationStatus] = useState("");
   const [editFeesDetails, setEditFeesDetails] = useState("");
   const [editRemarks, setEditRemarks] = useState("");
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
@@ -72,7 +68,7 @@ export function StudentManager() {
         return;
       }
 
-      setStudents(sortStudentsAsc(data));
+      setStudents(sortStudentsByEnrollmentNumberAsc(data));
     } catch (error) {
       console.error("Error fetching students:", error);
       toast.error("Failed to load students");
@@ -85,7 +81,7 @@ export function StudentManager() {
     event.preventDefault();
 
     if (!name.trim() || !rollNumber.trim()) {
-      toast.error("Name and roll number are required");
+      toast.error("Name and enrollment number are required");
       return;
     }
 
@@ -98,7 +94,9 @@ export function StudentManager() {
           name,
           rollNumber,
           parentEmail,
-          tgCourseRegistrationStatus,
+          parentContactNumber,
+          tgName,
+          courseRegistrationStatus,
           feesDetails,
           remarks,
         }),
@@ -110,11 +108,13 @@ export function StudentManager() {
         return;
       }
 
-      setStudents((current) => sortStudentsAsc([...current, data]));
+      setStudents((current) => sortStudentsByEnrollmentNumberAsc([...current, data]));
       setName("");
       setRollNumber("");
       setParentEmail("");
-      setTgCourseRegistrationStatus("");
+      setParentContactNumber("");
+      setTgName("");
+      setCourseRegistrationStatus("");
       setFeesDetails("");
       setRemarks("");
       toast.success("Student added to approved list");
@@ -135,7 +135,9 @@ export function StudentManager() {
     setEditName(student.name);
     setEditRollNumber(student.rollNumber);
     setEditParentEmail(student.parentEmail ?? "");
-    setEditTgCourseRegistrationStatus(student.tgCourseRegistrationStatus ?? "");
+    setEditParentContactNumber(student.parentContactNumber ?? "");
+    setEditTgName(student.tgName ?? "");
+    setEditCourseRegistrationStatus(student.courseRegistrationStatus ?? "");
     setEditFeesDetails(student.feesDetails ?? "");
     setEditRemarks(student.remarks ?? "");
   };
@@ -145,14 +147,16 @@ export function StudentManager() {
     setEditName("");
     setEditRollNumber("");
     setEditParentEmail("");
-    setEditTgCourseRegistrationStatus("");
+    setEditParentContactNumber("");
+    setEditTgName("");
+    setEditCourseRegistrationStatus("");
     setEditFeesDetails("");
     setEditRemarks("");
   };
 
   const handleUpdate = async (studentId: string) => {
     if (!editName.trim() || !editRollNumber.trim()) {
-      toast.error("Name and roll number are required");
+      toast.error("Name and enrollment number are required");
       return;
     }
 
@@ -165,7 +169,9 @@ export function StudentManager() {
           name: editName,
           rollNumber: editRollNumber,
           parentEmail: editParentEmail,
-          tgCourseRegistrationStatus: editTgCourseRegistrationStatus,
+          parentContactNumber: editParentContactNumber,
+          tgName: editTgName,
+          courseRegistrationStatus: editCourseRegistrationStatus,
           feesDetails: editFeesDetails,
           remarks: editRemarks,
         }),
@@ -178,7 +184,7 @@ export function StudentManager() {
       }
 
       setStudents((current) =>
-        sortStudentsAsc(
+        sortStudentsByEnrollmentNumberAsc(
           current.map((student) => (student.id === studentId ? data : student))
         )
       );
@@ -230,7 +236,9 @@ export function StudentManager() {
         student.name,
         student.rollNumber,
         student.parentEmail ?? "",
-        student.tgCourseRegistrationStatus ?? "",
+        student.parentContactNumber ?? "",
+        student.tgName ?? "",
+        student.courseRegistrationStatus ?? "",
         student.feesDetails ?? "",
         student.remarks ?? "",
       ]
@@ -269,11 +277,11 @@ export function StudentManager() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Roll Number</label>
+            <label className="block text-sm font-medium mb-2">Enrollment Number</label>
             <Input
               value={rollNumber}
               onChange={(event) => setRollNumber(event.target.value)}
-              placeholder="Enter roll number"
+              placeholder="Enter enrollment number"
             />
           </div>
 
@@ -289,11 +297,31 @@ export function StudentManager() {
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              TG Course Registration Status
+              Parent Contact Number
             </label>
             <Input
-              value={tgCourseRegistrationStatus}
-              onChange={(event) => setTgCourseRegistrationStatus(event.target.value)}
+              value={parentContactNumber}
+              onChange={(event) => setParentContactNumber(event.target.value)}
+              placeholder="+91 9876543210"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">TG Name</label>
+            <Input
+              value={tgName}
+              onChange={(event) => setTgName(event.target.value)}
+              placeholder="Enter TG name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Course Registration
+            </label>
+            <Input
+              value={courseRegistrationStatus}
+              onChange={(event) => setCourseRegistrationStatus(event.target.value)}
               placeholder="Registered / Pending / Not Registered"
             />
           </div>
@@ -330,7 +358,7 @@ export function StudentManager() {
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
           <h3 className="text-lg font-semibold">Approved Student List</h3>
           <Input
-            placeholder="Search by name, roll, TG status, fees..."
+            placeholder="Search by name, enrollment, TG, parent contact..."
             value={searchStudent}
             onChange={(event) => setSearchStudent(event.target.value)}
             className="md:max-w-sm"
@@ -340,9 +368,11 @@ export function StudentManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Roll Number</TableHead>
+              <TableHead>Enrollment Number</TableHead>
               <TableHead>Parent Email</TableHead>
-              <TableHead>TG Course Registration</TableHead>
+              <TableHead>Parent Contact Number</TableHead>
+              <TableHead>TG Name</TableHead>
+              <TableHead>Course Registration</TableHead>
               <TableHead>Fees Details</TableHead>
               <TableHead>Remarks</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -351,13 +381,13 @@ export function StudentManager() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-500">
+                <TableCell colSpan={9} className="text-center text-gray-500">
                   Loading students...
                 </TableCell>
               </TableRow>
             ) : filteredStudents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-500">
+                <TableCell colSpan={9} className="text-center text-gray-500">
                   {students.length === 0
                     ? "No students added yet"
                     : "No students match your search"}
@@ -403,14 +433,34 @@ export function StudentManager() {
                   <TableCell>
                     {editingStudentId === student.id ? (
                       <Input
-                        value={editTgCourseRegistrationStatus}
-                        onChange={(event) =>
-                          setEditTgCourseRegistrationStatus(event.target.value)
-                        }
+                        value={editParentContactNumber}
+                        onChange={(event) => setEditParentContactNumber(event.target.value)}
                         className="min-w-52"
                       />
                     ) : (
-                      student.tgCourseRegistrationStatus || "-"
+                      student.parentContactNumber || "-"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingStudentId === student.id ? (
+                      <Input
+                        value={editTgName}
+                        onChange={(event) => setEditTgName(event.target.value)}
+                        className="min-w-44"
+                      />
+                    ) : (
+                      student.tgName || "-"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingStudentId === student.id ? (
+                      <Input
+                        value={editCourseRegistrationStatus}
+                        onChange={(event) => setEditCourseRegistrationStatus(event.target.value)}
+                        className="min-w-52"
+                      />
+                    ) : (
+                      student.courseRegistrationStatus || "-"
                     )}
                   </TableCell>
                   <TableCell>

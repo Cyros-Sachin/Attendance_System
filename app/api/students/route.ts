@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma-client";
+import { sortStudentsByEnrollmentNumberAsc } from "@/lib/student-sort";
 
 function normalize(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -10,6 +11,9 @@ const studentSelect = {
   name: true,
   rollNumber: true,
   parentEmail: true,
+  parentContactNumber: true,
+  tgName: true,
+  courseRegistrationStatus: true,
   tgCourseRegistrationStatus: true,
   feesDetails: true,
   remarks: true,
@@ -20,11 +24,12 @@ export async function GET() {
   try {
     const students = await prisma.student.findMany({
       where: { classId: null },
-      orderBy: [{ rollNumber: "asc" }, { name: "asc" }],
       select: studentSelect,
     });
 
-    return NextResponse.json(students, { status: 200 });
+    return NextResponse.json(sortStudentsByEnrollmentNumberAsc(students), {
+      status: 200,
+    });
   } catch (error) {
     console.error("Error fetching students:", error);
     return NextResponse.json(
@@ -40,15 +45,20 @@ export async function POST(request: NextRequest) {
     const name = normalize(String(body.name ?? ""));
     const rollNumber = normalize(String(body.rollNumber ?? ""));
     const parentEmail = normalize(String(body.parentEmail ?? ""));
-    const tgCourseRegistrationStatus = normalize(
+    const parentContactNumber = normalize(String(body.parentContactNumber ?? ""));
+    const tgName = normalize(String(body.tgName ?? ""));
+    const legacyCourseRegistrationStatus = normalize(
       String(body.tgCourseRegistrationStatus ?? "")
+    );
+    const courseRegistrationStatus = normalize(
+      String(body.courseRegistrationStatus ?? legacyCourseRegistrationStatus)
     );
     const feesDetails = normalize(String(body.feesDetails ?? ""));
     const remarks = normalize(String(body.remarks ?? ""));
 
     if (!name || !rollNumber) {
       return NextResponse.json(
-        { error: "Name and roll number are required" },
+        { error: "Name and enrollment number are required" },
         { status: 400 }
       );
     }
@@ -62,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { error: "A student with this roll number already exists" },
+        { error: "A student with this enrollment number already exists" },
         { status: 409 }
       );
     }
@@ -72,7 +82,10 @@ export async function POST(request: NextRequest) {
         name,
         rollNumber,
         parentEmail: parentEmail || null,
-        tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+        parentContactNumber: parentContactNumber || null,
+        tgName: tgName || null,
+        courseRegistrationStatus: courseRegistrationStatus || null,
+        tgCourseRegistrationStatus: courseRegistrationStatus || null,
         feesDetails: feesDetails || null,
         remarks: remarks || null,
       },

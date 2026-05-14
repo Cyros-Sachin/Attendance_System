@@ -10,6 +10,9 @@ const studentSelect = {
   name: true,
   rollNumber: true,
   parentEmail: true,
+  parentContactNumber: true,
+  tgName: true,
+  courseRegistrationStatus: true,
   tgCourseRegistrationStatus: true,
   feesDetails: true,
   remarks: true,
@@ -26,15 +29,20 @@ export async function PATCH(
     const name = normalize(String(body.name ?? ""));
     const rollNumber = normalize(String(body.rollNumber ?? ""));
     const parentEmail = normalize(String(body.parentEmail ?? ""));
-    const tgCourseRegistrationStatus = normalize(
+    const parentContactNumber = normalize(String(body.parentContactNumber ?? ""));
+    const tgName = normalize(String(body.tgName ?? ""));
+    const legacyCourseRegistrationStatus = normalize(
       String(body.tgCourseRegistrationStatus ?? "")
+    );
+    const courseRegistrationStatus = normalize(
+      String(body.courseRegistrationStatus ?? legacyCourseRegistrationStatus)
     );
     const feesDetails = normalize(String(body.feesDetails ?? ""));
     const remarks = normalize(String(body.remarks ?? ""));
 
     if (!name || !rollNumber) {
       return NextResponse.json(
-        { error: "Name and roll number are required" },
+        { error: "Name and enrollment number are required" },
         { status: 400 }
       );
     }
@@ -49,7 +57,7 @@ export async function PATCH(
 
     if (duplicate) {
       return NextResponse.json(
-        { error: "Another student with this roll number already exists" },
+        { error: "Another student with this enrollment number already exists" },
         { status: 409 }
       );
     }
@@ -60,7 +68,10 @@ export async function PATCH(
         name,
         rollNumber,
         parentEmail: parentEmail || null,
-        tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+        parentContactNumber: parentContactNumber || null,
+        tgName: tgName || null,
+        courseRegistrationStatus: courseRegistrationStatus || null,
+        tgCourseRegistrationStatus: courseRegistrationStatus || null,
         feesDetails: feesDetails || null,
         remarks: remarks || null,
       },

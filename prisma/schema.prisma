@@ -22,14 +22,17 @@ model Class {
 }
 
 model Student {
-  id        String   @id @default(cuid())
-  name      String
-  rollNumber String
-  parentEmail String?
+  id                         String   @id @default(cuid())
+  name                       String
+  rollNumber                 String
+  parentEmail                String?
+  parentContactNumber        String?
+  tgName                     String?
+  courseRegistrationStatus   String?
   tgCourseRegistrationStatus String?
-  feesDetails String?
-  remarks   String?
-  createdAt DateTime @default(now())
+  feesDetails                String?
+  remarks                    String?
+  createdAt                  DateTime @default(now())
 
   classId    String?
   class      Class? @relation(fields: [classId], references: [id], onDelete: Cascade)

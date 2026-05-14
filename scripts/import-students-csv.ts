@@ -27,8 +27,15 @@ async function main() {
     const name = clean(row.student_name ?? row.name);
     const rollNumber = clean(row.roll_number ?? row.student_id ?? row.roll);
     const parentEmail = clean(row.parent_email);
-    const tgCourseRegistrationStatus = clean(
+    const parentContactNumber = clean(
+      row.parent_contact_number ?? row.parent_contact ?? row.parent_phone
+    );
+    const tgName = clean(row.tg_name ?? row.teacher_guardian_name);
+    const legacyCourseRegistrationStatus = clean(
       row.tg_course_registration_status ?? row.tg_registration_status
+    );
+    const courseRegistrationStatus = clean(
+      row.course_registration_status ?? legacyCourseRegistrationStatus
     );
     const feesDetails = clean(row.fees_details ?? row.fee_details ?? row.fees);
     const remarks = clean(row.remarks);
@@ -49,7 +56,10 @@ async function main() {
         data: {
           name,
           parentEmail: parentEmail || null,
-          tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+          parentContactNumber: parentContactNumber || null,
+          tgName: tgName || null,
+          courseRegistrationStatus: courseRegistrationStatus || null,
+          tgCourseRegistrationStatus: courseRegistrationStatus || null,
           feesDetails: feesDetails || null,
           remarks: remarks || null,
         },
@@ -60,7 +70,10 @@ async function main() {
           name,
           rollNumber,
           parentEmail: parentEmail || null,
-          tgCourseRegistrationStatus: tgCourseRegistrationStatus || null,
+          parentContactNumber: parentContactNumber || null,
+          tgName: tgName || null,
+          courseRegistrationStatus: courseRegistrationStatus || null,
+          tgCourseRegistrationStatus: courseRegistrationStatus || null,
           feesDetails: feesDetails || null,
           remarks: remarks || null,
         },

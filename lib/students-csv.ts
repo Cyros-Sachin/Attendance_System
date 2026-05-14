@@ -1,10 +1,13 @@
 import prisma from "./prisma-client";
+import { sortStudentsByEnrollmentNumberAsc } from "./student-sort";
 
 type CsvStudent = {
   rollNumber: string;
   name: string;
   parentEmail: string;
-  tgCourseRegistrationStatus: string;
+  parentContactNumber: string;
+  tgName: string;
+  courseRegistrationStatus: string;
   feesDetails: string;
   remarks: string;
   classPercentages: Map<string, string>;
@@ -26,9 +29,7 @@ function slugHeader(value: string) {
 export async function buildStudentsCsv() {
   const [classes, students, attendance] = await Promise.all([
     prisma.class.findMany({ orderBy: { name: "asc" } }),
-    prisma.student.findMany({
-      orderBy: [{ rollNumber: "asc" }, { name: "asc" }],
-    }),
+    prisma.student.findMany(),
     prisma.attendance.findMany({
       select: {
         classId: true,
@@ -57,8 +58,9 @@ export async function buildStudentsCsv() {
   }
 
   const rows = new Map<string, CsvStudent>();
+  const sortedStudents = sortStudentsByEnrollmentNumberAsc(students);
 
-  for (const student of students) {
+  for (const student of sortedStudents) {
     const key = `${student.rollNumber.toLowerCase()}:${student.name.toLowerCase()}`;
     const row =
       rows.get(key) ??
@@ -66,15 +68,25 @@ export async function buildStudentsCsv() {
         rollNumber: student.rollNumber,
         name: student.name,
         parentEmail: student.parentEmail ?? "",
-        tgCourseRegistrationStatus: student.tgCourseRegistrationStatus ?? "",
+        parentContactNumber: student.parentContactNumber ?? "",
+        tgName: student.tgName ?? "",
+        courseRegistrationStatus:
+          student.courseRegistrationStatus ?? student.tgCourseRegistrationStatus ?? "",
         feesDetails: student.feesDetails ?? "",
         remarks: student.remarks ?? "",
         classPercentages: new Map<string, string>(),
       };
 
     if (!row.parentEmail && student.parentEmail) row.parentEmail = student.parentEmail;
-    if (!row.tgCourseRegistrationStatus && student.tgCourseRegistrationStatus) {
-      row.tgCourseRegistrationStatus = student.tgCourseRegistrationStatus;
+    if (!row.parentContactNumber && student.parentContactNumber) {
+      row.parentContactNumber = student.parentContactNumber;
+    }
+    if (!row.tgName && student.tgName) {
+      row.tgName = student.tgName;
+    }
+    if (!row.courseRegistrationStatus) {
+      row.courseRegistrationStatus =
+        student.courseRegistrationStatus ?? student.tgCourseRegistrationStatus ?? "";
     }
     if (!row.feesDetails && student.feesDetails) {
       row.feesDetails = student.feesDetails;
@@ -97,17 +109,21 @@ export async function buildStudentsCsv() {
     "student_name",
     "roll_number",
     "parent_email",
-    "tg_course_registration_status",
+    "parent_contact_number",
+    "tg_name",
+    "course_registration_status",
     "fees_details",
     ...classes.map((cls) => `attendance_percentage_${slugHeader(cls.name)}`),
     "remarks",
   ];
 
-  const csvRows = [...rows.values()].map((student) => [
+  const csvRows = sortStudentsByEnrollmentNumberAsc([...rows.values()]).map((student) => [
     student.name,
     student.rollNumber,
     student.parentEmail,
-    student.tgCourseRegistrationStatus,
+    student.parentContactNumber,
+    student.tgName,
+    student.courseRegistrationStatus,
     student.feesDetails,
     ...classes.map((cls) => student.classPercentages.get(cls.id) ?? ""),
     student.remarks,

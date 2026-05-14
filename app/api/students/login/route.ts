@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     if (!name || !rollNumber) {
       return NextResponse.json(
-        { error: "Name and roll number are required" },
+        { error: "Name and enrollment number are required" },
         { status: 400 }
       );
     }
@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
         name: true,
         rollNumber: true,
         parentEmail: true,
+        parentContactNumber: true,
+        tgName: true,
+        courseRegistrationStatus: true,
         tgCourseRegistrationStatus: true,
         feesDetails: true,
         remarks: true,
@@ -44,6 +47,10 @@ export async function POST(request: NextRequest) {
       name: student.name,
       rollNumber: student.rollNumber,
       parentEmail: student.parentEmail,
+      parentContactNumber: student.parentContactNumber,
+      tgName: student.tgName,
+      courseRegistrationStatus:
+        student.courseRegistrationStatus ?? student.tgCourseRegistrationStatus,
       tgCourseRegistrationStatus: student.tgCourseRegistrationStatus,
       feesDetails: student.feesDetails,
       remarks: student.remarks,
